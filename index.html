@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cash Book Pro - Multi-Account Ledger</title>
+    
+    <!-- PWA & Mobile Meta Tags -->
+    <meta name="theme-color" content="#10b981">
+    <meta name="description" content="Offline-first Multi-Account Ledger & Cash Flow Manager App">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CashBook Pro">
+    
+    <!-- PWA Manifest & App Icon -->
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <!-- Chart.js for analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2canvas & jsPDF for PDF and Image exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Inter & JetBrains Mono Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        [x-cloak] { display: none !important; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: rgba(75, 85, 99, 0.4); }
+        body { overflow-x: hidden; touch-action: manipulation; }
+
+        :root {
+            --theme-primary: #10b981;
+            --theme-primary-dark: #059669;
+            --theme-gradient-from: #10b981;
+            --theme-gradient-to: #14b8a6;
+            --theme-light-bg: #ecfdf5;
+            --theme-light-text: #065f46;
+            --theme-dark-bg: #064e3b;
+            --theme-dark-text: #6ee7b7;
+        }
+
+        .theme-emerald {
+            --theme-primary: #10b981;
+            --theme-primary-dark: #059669;
+            --theme-gradient-from: #059669;
+            --theme-gradient-to: #0d9488;
+            --theme-light-bg: #ecfdf5;
+            --theme-light-text: #065f46;
+            --theme-dark-bg: #022c22;
+            --theme-dark-text: #6ee7b7;
+        }
+
+        .theme-sapphire {
+            --theme-primary: #2563eb;
+            --theme-primary-dark: #1d4ed8;
+            --theme-gradient-from: #2563eb;
+            --theme-gradient-to: #4f46e5;
+            --theme-light-bg: #eff6ff;
+            --theme-light-text: #1e40af;
+            --theme-dark-bg: #1e3a8a;
+            --theme-dark-text: #93c5fd;
+        }
+
+        .theme-amethyst {
+            --theme-primary: #8b5cf6;
+            --theme-primary-dark: #7c3aed;
+            --theme-gradient-from: #7c3aed;
+            --theme-gradient-to: #c084fc;
+            --theme-light-bg: #f5f3ff;
+            --theme-light-text: #5b21b6;
+            --theme-dark-bg: #3b0764;
+            --theme-dark-text: #d8b4fe;
+        }
+
+        .theme-ruby {
+            --theme-primary: #e11d48;
+            --theme-primary-dark: #be123c;
+            --theme-gradient-from: #e11d48;
+            --theme-gradient-to: #f43f5e;
+            --theme-light-bg: #fff1f2;
+            --theme-light-text: #9f1239;
+            --theme-dark-bg: #4c0519;
+            --theme-dark-text: #fecdd3;
+        }
+
+        .theme-amber {
+            --theme-primary: #d97706;
+            --theme-primary-dark: #b45309;
+            --theme-gradient-from: #d97706;
+            --theme-gradient-to: #f59e0b;
+            --theme-light-bg: #fffbeb;
+            --theme-light-text: #92400e;
+            --theme-dark-bg: #451a03;
+            --theme-dark-text: #fde68a;
+        }
+
+        .theme-onyx {
+            --theme-primary: #4b5563;
+            --theme-primary-dark: #1f2937;
+            --theme-gradient-from: #374151;
+            --theme-gradient-to: #111827;
+            --theme-light-bg: #f3f4f6;
+            --theme-light-text: #111827;
+            --theme-dark-bg: #111827;
+            --theme-dark-text: #e5e7eb;
+        }
+
+        .bg-theme-primary { background-color: var(--theme-primary) !important; }
+        .bg-theme-primary-dark { background-color: var(--theme-primary-dark) !important; }
+        .text-theme-primary { color: var(--theme-primary) !important; }
+        .border-theme-primary { border-color: var(--theme-primary) !important; }
+        .focus-ring-theme:focus { --tw-ring-color: var(--theme-primary) !important; }
+        
+        .bg-theme-gradient {
+            background-image: linear-gradient(to right, var(--theme-gradient-from), var(--theme-gradient-to)) !important;
+        }
+
+        .bg-theme-badge {
+            background-color: var(--theme-light-bg);
+            color: var(--theme-light-text);
+        }
+        .dark .bg-theme-badge {
+            background-color: var(--theme-dark-bg);
+            color: var(--theme-dark-text);
+        }
+    </style>
+</head>
+<body class="min-h-screen font-sans antialiased text-xs transition-colors duration-200" 
+      :class="[currentThemeClass, isDarkMode ? 'dark bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900']"
+      x-data="cashBookApp()" 
+      x-init="initApp()" 
+      x-cloak>
+
+    <!-- Top Header Navigation Bar -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 shadow-xs">
+        <div class="max-w-4xl mx-auto px-3.5 py-2.5 flex items-center justify-between gap-2">
+            
+            <!-- Left Brand Logo & Active Account Selector -->
+            <div class="flex items-center space-x-2.5">
+                <div class="w-9 h-9 rounded-xl bg-theme-gradient flex items-center justify-center text-white text-base shadow-md shrink-0">
+                    💳
+                </div>
+
+                <!-- Active Account Dropdown Selector -->
+                <template x-if="accounts.length > 0">
+                    <div class="relative" x-data="{ open: false }">
+                        <button @click="open = !open" class="flex items-center space-x-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 px-3 py-2 rounded-full border border-slate-200/80 dark:border-slate-700/80 text-xs font-bold text-slate-800 dark:text-slate-200 transition">
+                            <span class="w-2.5 h-2.5 rounded-full bg-theme-primary animate-pulse shrink-0"></span>
+                            <span x-text="activeAccount ? activeAccount.name : 'Select Account'" class="max-w-[140px] truncate text-xs font-extrabold"></span>
+                            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+
+                        <div x-show="open" @click.outside="open = false" x-transition 
+                            class="absolute left-0 mt-1.5 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 py-2 z-50 text-xs overflow-hidden">
+                            <div class="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-wider flex justify-between items-center">
+                                <span>Active Account</span>
+                                <span class="text-[9px] text-theme-primary font-bold">Auto-Saved</span>
+                            </div>
+                            <template x-for="acc in accounts" :key="acc.id">
+                                <div class="flex items-center justify-between hover:bg-slate-100 dark:hover:bg-slate-800/80 px-3 py-2.5 transition"
+                                     :class="acc.id === activeAccountId ? 'bg-slate-50 dark:bg-slate-800/50' : ''">
+                                    <button @click="switchAccount(acc.id); open = false" 
+                                        class="flex-1 text-left flex items-center space-x-2.5 truncate"
+                                        :class="acc.id === activeAccountId ? 'text-theme-primary font-black' : 'text-slate-700 dark:text-slate-200 font-semibold'">
+                                        <span class="text-sm" x-text="acc.icon || '👤'"></span>
+                                        <span x-text="acc.name" class="truncate text-xs"></span>
+                                        <span x-show="acc.id === activeAccountId" class="text-[10px] bg-theme-badge px-2 py-0.5 rounded-full font-bold ml-auto shrink-0">Active</span>
+                                    </button>
+                                    <div class="flex items-center space-x-1 shrink-0 ml-1">
+                                        <button @click.stop="openEditAccountModal(acc); open = false" title="Edit Account" class="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-500 text-xs">✏️</button>
+                                        <button x-show="accounts.length > 1" @click.stop="promptDeleteAccount(acc); open = false" title="Delete Account" class="p-1.5 hover:bg-rose-100 text-rose-500 rounded-lg text-xs">🗑️</button>
+                                    </div>
+                                </div>
+                            </template>
+                            <div class="border-t border-slate-100 dark:border-slate-800 mt-1 pt-2 px-2">
+                                <button @click="openAccountModal(); open = false" class="w-full text-left px-3 py-2 text-theme-primary hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl flex items-center space-x-1.5 font-bold text-xs">
+                                    <span>+ Add New Account</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Right Controls: PWA Install + Search + Drawer Menu -->
+            <div class="flex items-center space-x-2">
+                
+                <!-- PWA Install Button -->
+                <button x-show="showInstallBanner" @click="installApp()" 
+                    title="Install CashBook App"
+                    class="flex items-center space-x-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-black text-xs shadow-md animate-bounce transition active:scale-95">
+                    <span>📲</span>
+                    <span>Install</span>
+                </button>
+
+                <!-- Search & Calendar Icon Trigger Button -->
+                <button @click="showSearchModal = true" 
+                    title="Search & Calendar Filter"
+                    class="relative p-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 rounded-full border border-slate-200/80 dark:border-slate-700/80 text-slate-600 dark:text-slate-300 transition active:scale-95">
+                    <span class="text-sm">🔍</span>
+                    <span x-show="isFilterActive" class="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+                </button>
+
+                <!-- Top Menu Drawer Toggle Button -->
+                <button @click="showMenuDrawer = true" 
+                    title="Open Main Menu"
+                    class="flex items-center space-x-1.5 px-3.5 py-2 bg-theme-gradient hover:opacity-90 text-white rounded-full font-extrabold shadow-sm active:scale-95 transition text-xs">
+                    <span class="text-sm">☰</span>
+                    <span class="hidden sm:inline">Menu</span>
+                    <span x-show="deletedEntriesCount > 0" x-text="deletedEntriesCount" class="bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full ml-1"></span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="max-w-4xl mx-auto px-3.5 py-3.5 space-y-3.5">
+
+        <!-- PWA Install Alert Banner -->
+        <div x-show="showInstallBanner" x-transition class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white p-3.5 rounded-2xl shadow-md flex items-center justify-between gap-3">
+            <div class="flex items-center space-x-2.5">
+                <span class="text-2xl">📲</span>
+                <div>
+                    <h4 class="font-extrabold text-xs">Install Cash Book Pro App</h4>
+                    <p class="text-[11px] opacity-90">Install on home screen for fast offline access!</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-1.5">
+                <button @click="installApp()" class="px-3.5 py-2 bg-white text-emerald-700 font-extrabold rounded-xl text-xs shadow-xs hover:bg-slate-100 transition">Install</button>
+                <button @click="showInstallBanner = false" class="px-2.5 py-2 text-white opacity-80 hover:opacity-100 font-bold text-xs">&times;</button>
+            </div>
+        </div>
+
+        <!-- Welcome Clean State (If No Accounts Exist) -->
+        <template x-if="accounts.length === 0">
+            <div class="p-8 bg-white dark:bg-slate-900 rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-800/80 text-center space-y-4 my-8 max-w-sm mx-auto">
+                <div class="w-16 h-16 bg-theme-gradient text-white rounded-2xl flex items-center justify-center mx-auto text-3xl shadow-lg">📖</div>
+                <h2 class="text-sm font-extrabold text-slate-800 dark:text-slate-100">Welcome to Cash Book Pro</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">Create your first account (e.g., "Main Cash" or "Personal Ledger") to start logging transactions.</p>
+                <button @click="openAccountModal()" class="w-full py-3.5 bg-theme-gradient hover:opacity-90 text-white font-extrabold rounded-2xl text-xs transition active:scale-95 shadow-md">
+                    + Create First Account
+                </button>
+            </div>
+        </template>
+
+        <!-- Main Ledger Screen -->
+        <template x-if="accounts.length > 0">
+            <div class="space-y-3.5">
+                
+                <!-- Boxed Summary Cards: Net Balance, Cash IN (+), Cash OUT (-) -->
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between px-1">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm" x-text="activeAccount ? activeAccount.icon : '🏛️'"></span>
+                            <span class="text-xs font-black text-slate-800 dark:text-slate-200 truncate" x-text="activeAccount ? activeAccount.name : 'Ledger'"></span>
+                        </div>
+                        <span class="text-[10px] font-black bg-theme-badge px-3 py-1 rounded-full uppercase tracking-wider">Active Account</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <!-- Net Balance Box -->
+                        <div class="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border-2 shadow-xs text-center transition-all"
+                             :class="netBalance >= 0 ? 'border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-950/30' : 'border-rose-500/40 bg-rose-50/40 dark:bg-rose-950/30'">
+                            <p class="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">Net Balance</p>
+                            <h2 class="text-xs sm:text-sm font-black font-mono mt-1.5 truncate" 
+                                :class="netBalance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'"
+                                x-text="formatCurrency(netBalance)"></h2>
+                        </div>
+
+                        <!-- Cash In Box -->
+                        <div class="p-3.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 border-2 border-emerald-500/50 text-center shadow-xs transition-all">
+                            <p class="text-[10px] font-black text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">Cash In (+)</p>
+                            <h2 class="text-xs sm:text-sm font-black text-emerald-600 dark:text-emerald-400 font-mono mt-1.5 truncate" x-text="formatCurrency(totalCashIn)"></h2>
+                        </div>
+
+                        <!-- Cash Out Box -->
+                        <div class="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border-2 border-rose-500/50 text-center shadow-xs transition-all">
+                            <p class="text-[10px] font-black text-rose-700 dark:text-rose-300 uppercase tracking-wider">Cash Out (-)</p>
+                            <h2 class="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-1.5 truncate" x-text="formatCurrency(totalCashOut)"></h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Primary Action Buttons -->
+                <div class="grid grid-cols-3 gap-2.5">
+                    <button @click="openEntryModal('IN')" class="py-3 px-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-700 hover:to-emerald-600 text-white font-black rounded-2xl flex items-center justify-center space-x-2 shadow-md shadow-emerald-600/20 active:scale-95 transition">
+                        <span class="text-sm">📈</span>
+                        <span class="text-xs">+ CASH IN</span>
+                    </button>
+                    <button @click="openEntryModal('OUT')" class="py-3 px-3 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-700 hover:to-rose-600 text-white font-black rounded-2xl flex items-center justify-center space-x-2 shadow-md shadow-rose-600/20 active:scale-95 transition">
+                        <span class="text-sm">📉</span>
+                        <span class="text-xs">- CASH OUT</span>
+                    </button>
+                    <button @click="openStatementModal()" class="py-3 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl flex items-center justify-center space-x-1.5 shadow-xs active:scale-95 transition text-xs">
+                        <span class="text-sm">📄</span>
+                        <span>Statement</span>
+                    </button>
+                </div>
+
+                <!-- Active Filter Banner -->
+                <div x-show="isFilterActive" class="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/80 px-3.5 py-2 rounded-xl text-xs">
+                    <div class="flex items-center space-x-1.5 font-bold text-amber-900 dark:text-amber-200 truncate">
+                        <span>🔍 Active Filter:</span>
+                        <span x-text="searchAccountScope === 'ALL' ? 'ALL Accounts' : (activeAccount ? activeAccount.name : '')"></span>
+                        <span x-show="searchQuery" x-text="`• '${searchQuery}'`"></span>
+                        <span x-show="filterDate" x-text="`• ${filterDate}`"></span>
+                        <span x-show="filterType !== 'ALL'" x-text="`• ${filterType}`"></span>
+                    </div>
+                    <button @click="clearAllFilters()" class="font-extrabold text-rose-600 dark:text-rose-400 hover:underline shrink-0 ml-2">Reset</button>
+                </div>
+
+                <!-- Transactions History Card -->
+                <div class="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-xs">
+                    <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs bg-slate-50/80 dark:bg-slate-800/40">
+                        <span class="font-extrabold text-xs text-slate-800 dark:text-slate-200 flex items-center space-x-1.5" x-text="`Transactions (${filteredEntries.length})`"></span>
+                        <span class="text-[10px] font-semibold text-theme-primary bg-theme-badge px-2.5 py-0.5 rounded-full">Auto-Saved</span>
+                    </div>
+
+                    <!-- Empty State -->
+                    <template x-if="filteredEntries.length === 0">
+                        <div class="p-10 text-center text-slate-400 space-y-2.5">
+                            <div class="text-4xl">📭</div>
+                            <p class="font-extrabold text-xs text-slate-700 dark:text-slate-300">No transactions found</p>
+                            <p class="text-[11px] text-slate-400">Tap + CASH IN or - CASH OUT to add your first transaction.</p>
+                        </div>
+                    </template>
+
+                    <!-- Expanded & Clear List of Transaction Items -->
+                    <div x-show="filteredEntries.length > 0" class="p-2 space-y-2">
+                        <template x-for="entry in filteredEntries" :key="entry.id">
+                            <div class="px-3.5 py-3 rounded-2xl transition-all flex items-center justify-between gap-3 border-l-4 shadow-xs"
+                                :class="entry.type === 'IN' 
+                                    ? 'bg-emerald-50/90 dark:bg-emerald-950/50 border-emerald-500 border-t border-r border-b border-emerald-200/80 dark:border-emerald-800/60 hover:bg-emerald-100/90 dark:hover:bg-emerald-900/60' 
+                                    : 'bg-rose-50/90 dark:bg-rose-950/50 border-rose-500 border-t border-r border-b border-rose-200/80 dark:border-rose-800/60 hover:bg-rose-100/90 dark:hover:bg-rose-900/60'">
+                                
+                                <!-- Left: Remark & Timestamp & Account Tag -->
+                                <div class="min-w-0 flex-1 flex items-center space-x-3">
+                                    <span class="px-2 py-0.5 rounded-md text-[10px] font-black uppercase shrink-0"
+                                        :class="entry.type === 'IN' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'"
+                                        x-text="entry.type === 'IN' ? 'IN' : 'OUT'"></span>
+
+                                    <div class="min-w-0 flex-1 truncate">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="font-extrabold text-sm truncate" 
+                                                :class="entry.type === 'IN' ? 'text-emerald-950 dark:text-emerald-100' : 'text-rose-950 dark:text-rose-100'" 
+                                                x-text="entry.remark || 'General Entry'"></span>
+                                            
+                                            <!-- Account name badge -->
+                                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 shrink-0 hidden sm:inline-block"
+                                                x-text="getAccountName(entry.accountId)"></span>
+                                        </div>
+                                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5 block" x-text="formatDateTime(entry.date)"></span>
+                                    </div>
+                                </div>
+
+                                <!-- Right: Amount & Actions -->
+                                <div class="flex items-center space-x-3 shrink-0">
+                                    <div class="text-right">
+                                        <p class="font-black font-mono text-sm sm:text-base" 
+                                           :class="entry.type === 'IN' ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'">
+                                            <span x-text="entry.type === 'IN' ? '+' : '-'"></span>
+                                            <span x-text="formatCurrency(entry.amount)"></span>
+                                        </p>
+                                    </div>
+
+                                    <div class="flex items-center space-x-1 border-l pl-2.5"
+                                         :class="entry.type === 'IN' ? 'border-emerald-300 dark:border-emerald-800' : 'border-rose-300 dark:border-rose-800'">
+                                        <button @click="editEntry(entry)" title="Edit" 
+                                                class="p-1.5 rounded-lg text-xs transition"
+                                                :class="entry.type === 'IN' ? 'hover:bg-emerald-200/80 dark:hover:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100' : 'hover:bg-rose-200/80 dark:hover:bg-rose-800/80 text-rose-900 dark:text-rose-100'">✏️</button>
+                                        <button @click="confirmDeleteEntry(entry)" title="Delete" 
+                                                class="p-1.5 rounded-lg text-xs transition"
+                                                :class="entry.type === 'IN' ? 'hover:bg-emerald-200/80 dark:hover:bg-emerald-800/80 text-emerald-900 dark:text-emerald-100' : 'hover:bg-rose-200/80 dark:hover:bg-rose-800/80 text-rose-900 dark:text-rose-100'">🗑️</button>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+        </template>
+
+    </main>
+
+    <!-- ================= TOP MENU DRAWER (SLIDE-OUT MENU) ================= -->
+    <div x-show="showMenuDrawer" class="fixed inset-0 z-50 flex justify-end bg-slate-900/60 backdrop-blur-xs" x-transition>
+        <div @click.outside="showMenuDrawer = false" 
+             class="bg-white dark:bg-slate-900 w-full max-w-sm h-full shadow-2xl border-l border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden">
+            
+            <div class="p-4 bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl">💳</span>
+                    <div>
+                        <h3 class="font-black text-xs">Cash Book Pro</h3>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Settings & Analytics Menu</p>
+                    </div>
+                </div>
+                <button @click="showMenuDrawer = false" class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-300">&times;</button>
+            </div>
+
+            <div class="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+                <button @click="activeDrawerTab = 'analytics'; $nextTick(() => renderCharts())" 
+                    :class="activeDrawerTab === 'analytics' ? 'border-b-2 border-theme-primary font-extrabold text-theme-primary bg-white dark:bg-slate-900' : 'text-slate-500 font-medium'"
+                    class="flex-1 py-3 text-xs text-center transition">
+                    📊 Analytics
+                </button>
+                <button @click="activeDrawerTab = 'settings'" 
+                    :class="activeDrawerTab === 'settings' ? 'border-b-2 border-theme-primary font-extrabold text-theme-primary bg-white dark:bg-slate-900' : 'text-slate-500 font-medium'"
+                    class="flex-1 py-3 text-xs text-center transition">
+                    ⚙️ Settings
+                </button>
+                <button @click="activeDrawerTab = 'trash'" 
+                    :class="activeDrawerTab === 'trash' ? 'border-b-2 border-theme-primary font-extrabold text-theme-primary bg-white dark:bg-slate-900' : 'text-slate-500 font-medium'"
+                    class="flex-1 py-3 text-xs text-center transition relative">
+                    🗑️ Trash
+                    <span x-show="deletedEntriesCount > 0" x-text="deletedEntriesCount" class="ml-1 bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full"></span>
+                </button>
+            </div>
+
+            <div class="p-4 overflow-y-auto space-y-4 flex-1">
+                
+                <div x-show="activeDrawerTab === 'analytics'" class="space-y-3">
+                    <h4 class="font-extrabold text-xs text-slate-800 dark:text-slate-100">Cash Flow Chart</h4>
+                    <div class="h-60 relative bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-200 dark:border-slate-800">
+                        <canvas id="cashflowChart"></canvas>
+                    </div>
+                </div>
+
+                <div x-show="activeDrawerTab === 'settings'" class="space-y-4">
+                    
+                    <!-- PWA Manual Trigger Button in Settings -->
+                    <div x-show="showInstallBanner" class="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl">
+                        <label class="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-1.5">PWA App Installation</label>
+                        <button @click="installApp()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-black rounded-xl text-xs transition shadow-xs">
+                            📲 Install App on Phone/PC
+                        </button>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Color Themes</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <template x-for="themeItem in availableThemes" :key="themeItem.id">
+                                <button @click="setTheme(themeItem.id)" 
+                                    :class="selectedTheme === themeItem.id ? 'border-2 border-slate-900 dark:border-white shadow-md font-extrabold' : 'border border-slate-200 dark:border-slate-800 opacity-80'"
+                                    class="p-2.5 rounded-xl flex items-center space-x-2.5 text-left bg-slate-50 dark:bg-slate-800/60">
+                                    <div class="w-6 h-6 rounded-lg flex items-center justify-center text-white text-xs shrink-0"
+                                         :style="`background: linear-gradient(135deg, ${themeItem.colorFrom}, ${themeItem.colorTo});`">
+                                        <span x-text="themeItem.icon"></span>
+                                    </div>
+                                    <span class="text-xs truncate font-bold text-slate-800 dark:text-slate-100" x-text="themeItem.name"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Data Backup & Restore</label>
+                        <div class="flex gap-2">
+                            <button @click="exportJSON()" class="flex-1 py-2.5 bg-theme-primary text-white font-bold rounded-xl text-xs shadow-xs">📥 Export JSON</button>
+                            <label class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold rounded-xl text-xs text-center cursor-pointer">
+                                <span>📤 Import JSON</span>
+                                <input type="file" accept=".json" @change="importJSON($event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Manage Accounts</label>
+                            <button @click="openAccountModal()" class="text-xs text-theme-primary font-bold">+ Add Account</button>
+                        </div>
+                        <div class="space-y-2">
+                            <template x-for="acc in accounts" :key="acc.id">
+                                <div class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex justify-between items-center text-xs">
+                                    <span class="font-bold truncate text-xs" x-text="`${acc.icon || '👤'} ${acc.name}`"></span>
+                                    <div class="flex items-center space-x-1.5">
+                                        <button @click="openEditAccountModal(acc)" class="px-2.5 py-1 bg-slate-200 dark:bg-slate-700 rounded text-xs">Edit</button>
+                                        <button x-show="accounts.length > 1" @click="promptDeleteAccount(acc)" class="px-2.5 py-1 bg-rose-100 text-rose-600 rounded text-xs font-bold">Delete</button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div x-show="activeDrawerTab === 'trash'" class="space-y-3">
+                    <div class="flex justify-between items-center">
+                        <h4 class="font-extrabold text-xs text-rose-600 dark:text-rose-400">Recycle Bin</h4>
+                        <button @click="showEmptyTrashConfirm = true" x-show="deletedEntries.length > 0" class="px-2.5 py-1 bg-rose-600 text-white text-xs font-bold rounded-lg">Empty Trash</button>
+                    </div>
+
+                    <template x-if="deletedEntries.length === 0">
+                        <p class="text-xs text-slate-400 text-center py-6">Trash is empty</p>
+                    </template>
+
+                    <div x-show="deletedEntries.length > 0" class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <template x-for="item in deletedEntries" :key="item.id">
+                            <div class="py-2.5 flex items-center justify-between text-xs">
+                                <div>
+                                    <p class="font-bold text-xs" x-text="item.remark || 'General Entry'"></p>
+                                    <p class="text-xs font-mono mt-0.5" :class="item.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'" x-text="`${item.type === 'IN' ? '+' : '-'}${formatCurrency(item.amount)}`"></p>
+                                </div>
+                                <div class="flex items-center space-x-1.5">
+                                    <button @click="restoreEntry(item.id)" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">Restore</button>
+                                    <button @click="permanentlyDeleteEntry(item.id)" class="px-2.5 py-1 bg-rose-100 text-rose-800 text-xs font-bold rounded">Delete</button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Drawer Footer with Creator Info -->
+            <div class="p-3.5 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 text-xs border-t border-slate-200 dark:border-slate-800 shrink-0 text-center font-semibold">
+                App Creator: <strong class="text-slate-900 dark:text-white font-extrabold">Junaid Gillani</strong> • 📞 Phone: <span class="font-mono font-bold text-slate-800 dark:text-slate-200">03176407994</span>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SEARCH & CALENDAR FILTER MODAL -->
+    <div x-show="showSearchModal" class="fixed inset-0 z-50 flex items-start justify-center p-3 pt-6 bg-slate-900/60 backdrop-blur-xs" x-transition>
+        <div @click.outside="showSearchModal = false" class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 p-4 space-y-3.5">
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2.5">
+                <h3 class="font-black text-xs text-slate-800 dark:text-slate-100 flex items-center space-x-1.5">
+                    <span class="text-sm">🔍</span>
+                    <span>Search & Date Filter</span>
+                </h3>
+                <button @click="showSearchModal = false" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Keyword Search</label>
+                <input type="text" x-model="searchQuery" placeholder="Search detail, name or amount..."
+                    class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus-ring-theme focus:outline-none">
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Account Scope</label>
+                <select x-model="searchAccountScope" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 focus-ring-theme focus:outline-none">
+                    <option value="CURRENT" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Current Account Only</option>
+                    <option value="ALL" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">Across ALL Accounts</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Calendar Date</label>
+                <div class="flex items-center space-x-1.5">
+                    <input type="date" x-model="filterDate" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 focus-ring-theme focus:outline-none">
+                    <button x-show="filterDate" @click="filterDate = ''" class="px-3 py-2.5 text-rose-500 font-bold text-xs hover:bg-rose-50 rounded-xl">✖</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Type Filter</label>
+                <div class="grid grid-cols-3 gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                    <button @click="filterType = 'ALL'" :class="filterType === 'ALL' ? 'bg-white dark:bg-slate-700 font-extrabold shadow-xs text-slate-900 dark:text-white' : 'text-slate-500'" class="py-1.5 rounded-lg text-xs">All</button>
+                    <button @click="filterType = 'IN'" :class="filterType === 'IN' ? 'bg-emerald-600 font-extrabold text-white shadow-xs' : 'text-emerald-600'" class="py-1.5 rounded-lg text-xs">+ In</button>
+                    <button @click="filterType = 'OUT'" :class="filterType === 'OUT' ? 'bg-rose-600 font-extrabold text-white shadow-xs' : 'text-rose-600'" class="py-1.5 rounded-lg text-xs">- Out</button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                <button @click="clearAllFilters()" class="flex-1 py-2.5 text-xs font-bold text-slate-500 hover:text-slate-700">Clear All</button>
+                <button @click="showSearchModal = false" class="flex-1 py-2.5 bg-theme-primary text-white font-black rounded-xl text-xs shadow-md">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT ENTRY MODAL -->
+    <div x-show="showEntryModal" 
+        class="fixed inset-0 z-50 flex items-start justify-center p-3 pt-6 sm:pt-12 bg-slate-900/70 backdrop-blur-xs overflow-y-auto" 
+        x-transition>
+        
+        <div @click.outside="showEntryModal = false" class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col transform transition-all">
+            
+            <div class="px-4 py-3 flex justify-between items-center border-b border-slate-100 dark:border-slate-800 shrink-0"
+                :class="entryForm.type === 'IN' ? 'bg-emerald-50/80 dark:bg-emerald-950/40' : 'bg-rose-50/80 dark:bg-rose-950/40'">
+                <h3 class="font-black text-xs flex items-center space-x-2"
+                    :class="entryForm.type === 'IN' ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'">
+                    <span class="text-sm" x-text="entryForm.isEdit ? '✏️' : (entryForm.type === 'IN' ? '📈' : '📉')"></span>
+                    <span x-text="entryForm.isEdit ? 'Edit Entry' : (entryForm.type === 'IN' ? 'Add Cash IN' : 'Add Cash OUT')"></span>
+                </h3>
+                <button @click="showEntryModal = false" class="w-7 h-7 rounded-full bg-white dark:bg-slate-800 text-slate-400 hover:text-slate-600 flex items-center justify-center font-bold text-sm shadow-xs">&times;</button>
+            </div>
+
+            <form @submit.prevent="saveEntry()" class="p-4 space-y-3.5">
+                
+                <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                    <button type="button" @click="entryForm.type = 'IN'"
+                        :class="entryForm.type === 'IN' ? 'bg-emerald-600 text-white font-black shadow-xs' : 'text-slate-600 dark:text-slate-300 font-medium'"
+                        class="py-2 rounded-xl text-xs transition">
+                        + Cash IN
+                    </button>
+                    <button type="button" @click="entryForm.type = 'OUT'"
+                        :class="entryForm.type === 'OUT' ? 'bg-rose-600 text-white font-black shadow-xs' : 'text-slate-600 dark:text-slate-300 font-medium'"
+                        class="py-2 rounded-xl text-xs transition">
+                        - Cash OUT
+                    </button>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Amount (Rs)</label>
+                    <div class="relative">
+                        <span class="absolute left-3.5 top-2.5 font-black font-mono text-slate-400 text-sm">Rs</span>
+                        <input type="number" step="0.01" min="0.01" required x-ref="amountInput" x-model.number="entryForm.amount" placeholder="0.00"
+                            class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-base font-black text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus-ring-theme focus:outline-none">
+                    </div>
+                </div>
+
+                <div class="relative">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Name / Details (Optional)</label>
+                    <input type="text" x-model="entryForm.remark" @focus="showRemarkSuggestions = true" placeholder="e.g. Rent, Payment, Bill #..."
+                        class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus-ring-theme focus:outline-none">
+                    
+                    <div x-show="showRemarkSuggestions && remarkSuggestions.length > 0" 
+                         @click.outside="showRemarkSuggestions = false"
+                         x-transition
+                         class="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl max-h-40 overflow-y-auto z-50 divide-y divide-slate-100 dark:divide-slate-800">
+                        <template x-for="suggestion in remarkSuggestions" :key="suggestion">
+                            <button type="button" 
+                                @click="selectRemarkSuggestion(suggestion)" 
+                                class="w-full text-left px-3.5 py-2.5 text-xs font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-theme-primary transition flex items-center justify-between">
+                                <span x-text="suggestion" class="truncate"></span>
+                                <span class="text-[10px] text-theme-primary font-bold shrink-0 ml-1">Select ↵</span>
+                            </button>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="text-[10px] text-slate-400 text-center font-medium">
+                    ⏱️ Current Date & Time saved automatically
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 shrink-0">
+                    <button type="button" @click="showEntryModal = false" class="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+                    <button type="submit" 
+                        :class="entryForm.type === 'IN' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'"
+                        class="px-5 py-2.5 text-white font-black rounded-xl shadow-md active:scale-95 transition text-xs">
+                        Save Entry
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CREATE / EDIT ACCOUNT MODAL -->
+    <div x-show="showAccountModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs" x-transition>
+        <div @click.outside="showAccountModal = false" class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h3 class="font-black text-xs text-slate-800 dark:text-slate-100" x-text="accountForm.isEdit ? 'Edit Account' : 'New Account'"></h3>
+                <button @click="showAccountModal = false" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+            
+            <form @submit.prevent="saveAccount()" class="p-4 space-y-3.5">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Account Name</label>
+                    <input type="text" x-model="accountForm.name" required placeholder="e.g. Main Cash, Shop, Personal"
+                        class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus-ring-theme focus:outline-none">
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-1">Icon</label>
+                    <select x-model="accountForm.icon" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-900 dark:text-slate-100 focus-ring-theme focus:outline-none">
+                        <option value="💵" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">💵 Cash Ledger</option>
+                        <option value="👤" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">👤 Personal</option>
+                        <option value="💼" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">💼 Business</option>
+                        <option value="🏦" class="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">🏦 Bank</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end space-x-2 pt-2.5 border-t border-slate-100 dark:border-slate-800">
+                    <button type="button" @click="showAccountModal = false" class="px-3.5 py-2 text-xs text-slate-500 font-bold">Cancel</button>
+                    <button type="submit" class="px-4.5 py-2 bg-theme-primary hover:bg-theme-primary-dark text-white font-bold rounded-xl text-xs shadow-xs transition" x-text="accountForm.isEdit ? 'Update Account' : 'Create Account'"></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- DELETE ACCOUNT CONFIRMATION MODAL -->
+    <div x-show="showDeleteAccountModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/70 backdrop-blur-xs" x-transition>
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-5 max-w-sm w-full border border-slate-200 dark:border-slate-800 text-center space-y-3.5">
+            <div class="w-12 h-12 bg-rose-100 dark:bg-rose-950/60 text-rose-600 rounded-2xl flex items-center justify-center mx-auto text-2xl shadow-inner">⚠️</div>
+            
+            <div class="space-y-1.5">
+                <h3 class="font-black text-xs text-slate-800 dark:text-slate-100">Delete Account?</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    To confirm deletion of <strong class="text-rose-600 dark:text-rose-400 font-mono text-xs" x-text="accountToDelete ? accountToDelete.name : ''"></strong>, please type the exact account name below:
+                </p>
+            </div>
+
+            <input type="text" x-model="deleteAccountConfirmName" :placeholder="accountToDelete ? accountToDelete.name : ''" 
+                class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold text-center text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:ring-2 focus:ring-rose-500 focus:outline-none">
+
+            <div class="flex space-x-2 pt-1.5">
+                <button @click="showDeleteAccountModal = false" class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs rounded-xl font-bold">Cancel</button>
+                <button @click="executeDeleteAccount()" 
+                    :disabled="!canConfirmAccountDelete"
+                    :class="canConfirmAccountDelete ? 'bg-rose-600 hover:bg-rose-700 text-white cursor-pointer' : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'"
+                    class="flex-1 py-2.5 text-xs font-black rounded-xl transition">
+                    Confirm Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELETE ENTRY CONFIRMATION MODAL -->
+    <div x-show="showDeleteConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs" x-transition>
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-5 max-w-sm w-full border border-slate-200 dark:border-slate-800 text-center space-y-3">
+            <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-lg">🗑️</div>
+            <h3 class="font-bold text-xs text-slate-800 dark:text-slate-100">Move to Trash?</h3>
+            
+            <template x-if="targetEntryToDelete">
+                <div class="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-left text-xs space-y-1">
+                    <p class="font-bold text-slate-800 dark:text-slate-200 text-xs" x-text="targetEntryToDelete.remark || 'General Entry'"></p>
+                    <p class="font-mono font-bold text-xs" :class="targetEntryToDelete.type === 'IN' ? 'text-emerald-600' : 'text-rose-600'" x-text="`${targetEntryToDelete.type === 'IN' ? '+' : '-'}${formatCurrency(targetEntryToDelete.amount)}`"></p>
+                </div>
+            </template>
+
+            <div class="flex space-x-2 pt-1.5">
+                <button @click="showDeleteConfirmModal = false" class="flex-1 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs rounded-xl font-bold">Cancel</button>
+                <button @click="executeSoftDelete()" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition">Move to Trash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty Trash Confirmation Modal -->
+    <div x-show="showEmptyTrashConfirm" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/60 backdrop-blur-xs" x-transition>
+        <div class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-5 max-w-sm w-full border border-slate-200 dark:border-slate-800 text-center space-y-3">
+            <div class="w-10 h-10 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto text-base">⚠️</div>
+            <h3 class="font-bold text-xs">Empty Trash?</h3>
+            <p class="text-xs text-slate-500">Permanently delete all trash entries?</p>
+            <div class="flex space-x-2 pt-1.5">
+                <button @click="showEmptyTrashConfirm = false" class="flex-1 py-2 bg-slate-100 dark:bg-slate-800 text-xs rounded-xl font-semibold">Cancel</button>
+                <button @click="emptyTrash(); showEmptyTrashConfirm = false" class="flex-1 py-2 bg-rose-600 text-white text-xs font-bold rounded-xl">Empty</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- STATEMENT EXPORT MODAL -->
+    <div x-show="showStatementModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/70 backdrop-blur-xs overflow-y-auto" x-transition>
+        <div @click.outside="showStatementModal = false" class="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800 my-auto overflow-hidden">
+            
+            <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <h3 class="font-bold text-xs text-slate-800 dark:text-slate-100" x-text="`Account Statement - ${activeAccount ? activeAccount.name : ''}`"></h3>
+                <button @click="showStatementModal = false" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+            </div>
+
+            <div id="statementPrintArea" class="p-6 bg-white text-slate-900 space-y-4 text-xs">
+                <div class="border-b pb-3.5 flex justify-between items-start">
+                    <div>
+                        <h2 class="text-base font-black text-slate-900" x-text="`Account Statement: ${activeAccount ? activeAccount.name : 'Ledger'}`"></h2>
+                        <p class="text-[11px] text-slate-500" x-text="`Generated on: ${new Date().toLocaleString()}`"></p>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-bold text-slate-800">CashBook Pro</span>
+                        <p class="text-[10px] text-slate-500 font-medium">App Creator: Junaid Gillani (Phone: 03176407994)</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5 text-center">
+                    <div class="p-3 bg-emerald-50 rounded-2xl border-2 border-emerald-300">
+                        <p class="text-[10px] text-emerald-800 uppercase font-black">Total In</p>
+                        <p class="font-black text-emerald-600 font-mono text-xs mt-1" x-text="formatCurrency(totalCashIn)"></p>
+                    </div>
+                    <div class="p-3 bg-rose-50 rounded-2xl border-2 border-rose-300">
+                        <p class="text-[10px] text-rose-800 uppercase font-black">Total Out</p>
+                        <p class="font-black text-rose-600 font-mono text-xs mt-1" x-text="formatCurrency(totalCashOut)"></p>
+                    </div>
+                    <div class="p-3 rounded-2xl border-2 transition-all"
+                         :class="netBalance >= 0 ? 'bg-emerald-50/60 border-emerald-300 text-emerald-800' : 'bg-rose-50/60 border-rose-300 text-rose-800'">
+                        <p class="text-[10px] uppercase font-black">Net Balance</p>
+                        <p class="font-black font-mono text-xs mt-1" :class="netBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'" x-text="formatCurrency(netBalance)"></p>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="font-bold text-xs text-slate-500 uppercase border-b pb-1">Transaction History</h4>
+                    <template x-if="activeEntries.length === 0">
+                        <p class="text-xs text-slate-400 py-3 text-center">No entries recorded in this account.</p>
+                    </template>
+
+                    <div class="space-y-2">
+                        <template x-for="item in activeEntries" :key="item.id">
+                            <div class="p-2.5 rounded-xl flex justify-between items-center text-xs border-l-4"
+                                :class="item.type === 'IN' ? 'bg-emerald-50 border-emerald-500 text-emerald-950' : 'bg-rose-50 border-rose-500 text-rose-950'">
+                                <div>
+                                    <p class="font-extrabold text-xs" x-text="item.remark || 'General Entry'"></p>
+                                    <p class="text-[10px] font-medium mt-0.5" :class="item.type === 'IN' ? 'text-emerald-700' : 'text-rose-700'" x-text="formatDateTime(item.date)"></p>
+                                </div>
+                                <div class="text-right font-mono font-black text-xs" :class="item.type === 'IN' ? 'text-emerald-700' : 'text-rose-700'">
+                                    <span x-text="`${item.type === 'IN' ? '+' : '-'}${formatCurrency(item.amount)}`"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 flex flex-wrap justify-end gap-2">
+                <button @click="shareStatementWhatsApp()" class="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition flex items-center space-x-1.5 active:scale-95 shadow-xs">
+                    <span>💬</span>
+                    <span>Send to WhatsApp</span>
+                </button>
+                <button @click="downloadStatementImage()" class="px-3.5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs transition flex items-center space-x-1.5 active:scale-95 shadow-xs">
+                    <span>🖼️</span>
+                    <span>Save PNG</span>
+                </button>
+                <button @click="downloadStatementPDF()" class="px-3.5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition flex items-center space-x-1.5 active:scale-95 shadow-xs">
+                    <span>📄</span>
+                    <span>PDF</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Data Logic & PWA Engine -->
+    <script>
+        // 1. Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered successfully.');
+                    })
+                    .catch(error => {
+                        console.error('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+
+        // 2. IndexedDB Storage Helper
+        const idbHelper = {
+            dbName: 'CashBookPro_DB_v3',
+            dbVersion: 1,
+            db: null,
+            async init() {
+                return new Promise((resolve) => {
+                    if (!window.indexedDB) return resolve(false);
+                    const request = window.indexedDB.open(this.dbName, this.dbVersion);
+                    request.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains('accounts')) {
+                            db.createObjectStore('accounts', { keyPath: 'id' });
+                        }
+                        if (!db.objectStoreNames.contains('entries')) {
+                            db.createObjectStore('entries', { keyPath: 'id' });
+                        }
+                    };
+                    request.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve(true);
+                    };
+                    request.onerror = () => resolve(false);
+                });
+            },
+            async getAll(storeName) {
+                return new Promise((resolve) => {
+                    if (!this.db) return resolve(null);
+                    try {
+                        const tx = this.db.transaction(storeName, 'readonly');
+                        const store = tx.objectStore(storeName);
+                        const req = store.getAll();
+                        req.onsuccess = () => resolve(req.result);
+                        req.onerror = () => resolve(null);
+                    } catch (e) {
+                        resolve(null);
+                    }
+                });
+            },
+            async saveAll(storeName, items) {
+                return new Promise((resolve) => {
+                    if (!this.db) return resolve(false);
+                    try {
+                        const tx = this.db.transaction(storeName, 'readwrite');
+                        const store = tx.objectStore(storeName);
+                        store.clear();
+                        items.forEach(item => store.put(item));
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                    } catch (e) {
+                        resolve(false);
+                    }
+                });
+            }
+        };
+
+        // 3. Main Alpine.js Application Component
+        function cashBookApp() {
+            return {
+                showMenuDrawer: false,
+                activeDrawerTab: 'settings', 
+                
+                accounts: [],
+                activeAccountId: null,
+                entries: [],
+                
+                selectedTheme: 'emerald',
+                darkMode: 'system',
+                systemPrefersDark: false,
+
+                // PWA Installation state
+                deferredPrompt: null,
+                showInstallBanner: false,
+
+                availableThemes: [
+                    { id: 'emerald', name: 'Emerald Mint', icon: '🌿', colorFrom: '#059669', colorTo: '#0d9488', primaryHex: '#10b981' },
+                    { id: 'sapphire', name: 'Ocean Sapphire', icon: '💎', colorFrom: '#2563eb', colorTo: '#4f46e5', primaryHex: '#2563eb' },
+                    { id: 'amethyst', name: 'Royal Amethyst', icon: '🔮', colorFrom: '#7c3aed', colorTo: '#c084fc', primaryHex: '#8b5cf6' },
+                    { id: 'ruby', name: 'Sunset Ruby', icon: '🔥', colorFrom: '#e11d48', colorTo: '#f43f5e', primaryHex: '#e11d48' },
+                    { id: 'amber', name: 'Golden Amber', icon: '👑', colorFrom: '#d97706', colorTo: '#f59e0b', primaryHex: '#d97706' },
+                    { id: 'onyx', name: 'OLED Minimal Onyx', icon: '🖤', colorFrom: '#374151', colorTo: '#111827', primaryHex: '#4b5563' }
+                ],
+
+                // Search & Calendar Filters
+                showSearchModal: false,
+                searchQuery: '',
+                searchAccountScope: 'CURRENT',
+                filterType: 'ALL',
+                filterDate: '',
+
+                // Other Modals
+                showEntryModal: false,
+                showAccountModal: false,
+                showStatementModal: false,
+                showDeleteConfirmModal: false,
+                showEmptyTrashConfirm: false,
+                showDeleteAccountModal: false,
+
+                accountToDelete: null,
+                deleteAccountConfirmName: '',
+                targetEntryToDelete: null,
+
+                entryForm: { id: null, isEdit: false, type: 'IN', amount: '', remark: '' },
+                showRemarkSuggestions: false,
+                accountForm: { id: null, isEdit: false, name: '', icon: '💵' },
+                cashflowChartInstance: null,
+
+                async initApp() {
+                    window.addEventListener('beforeinstallprompt', (e) => {
+                        e.preventDefault();
+                        this.deferredPrompt = e;
+                        this.showInstallBanner = true;
+                    });
+
+                    window.addEventListener('appinstalled', () => {
+                        this.showInstallBanner = false;
+                        this.deferredPrompt = null;
+                        console.log('Cash Book Pro app installed successfully.');
+                    });
+
+                    this.systemPrefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                        this.systemPrefersDark = e.matches;
+                    });
+
+                    const savedTheme = localStorage.getItem('cb_theme');
+                    if (savedTheme) this.selectedTheme = savedTheme;
+
+                    const savedDarkMode = localStorage.getItem('cb_dark_mode');
+                    if (savedDarkMode) this.darkMode = savedDarkMode;
+
+                    await idbHelper.init();
+                    await this.loadData();
+
+                    const savedAccountId = localStorage.getItem('cb_active_account_id');
+                    if (savedAccountId && this.accounts.some(a => a.id === savedAccountId)) {
+                        this.activeAccountId = savedAccountId;
+                    } else if (this.accounts.length > 0) {
+                        this.activeAccountId = this.accounts[0].id;
+                        localStorage.setItem('cb_active_account_id', this.activeAccountId);
+                    }
+                },
+
+                async installApp() {
+                    if (!this.deferredPrompt) return;
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    console.log(`User installation choice: ${outcome}`);
+                    this.deferredPrompt = null;
+                    this.showInstallBanner = false;
+                },
+
+                get isDarkMode() {
+                    if (this.darkMode === 'dark') return true;
+                    if (this.darkMode === 'light') return false;
+                    return this.systemPrefersDark;
+                },
+
+                get currentThemeClass() {
+                    return `theme-${this.selectedTheme}`;
+                },
+
+                get isFilterActive() {
+                    return this.searchQuery.trim() !== '' || this.filterDate !== '' || this.filterType !== 'ALL' || this.searchAccountScope === 'ALL';
+                },
+
+                setTheme(themeId) {
+                    this.selectedTheme = themeId;
+                    localStorage.setItem('cb_theme', themeId);
+                    if (this.activeDrawerTab === 'analytics') {
+                        this.$nextTick(() => this.renderCharts());
+                    }
+                },
+
+                async loadData() {
+                    let idbAccounts = await idbHelper.getAll('accounts');
+                    let idbEntries = await idbHelper.getAll('entries');
+
+                    if (idbAccounts && idbAccounts.length > 0) {
+                        this.accounts = idbAccounts;
+                    } else {
+                        const savedAccounts = localStorage.getItem('cb_accounts');
+                        if (savedAccounts) {
+                            this.accounts = JSON.parse(savedAccounts);
+                            await idbHelper.saveAll('accounts', this.accounts);
+                        } else {
+                            this.accounts = [{ id: 'acc_default', name: 'Main Cash', icon: '💵' }];
+                            await idbHelper.saveAll('accounts', this.accounts);
+                        }
+                    }
+
+                    if (idbEntries && idbEntries.length > 0) {
+                        this.entries = idbEntries;
+                    } else {
+                        const savedEntries = localStorage.getItem('cb_entries');
+                        if (savedEntries) {
+                            this.entries = JSON.parse(savedEntries);
+                            await idbHelper.saveAll('entries', this.entries);
+                        }
+                    }
+                },
+
+                async saveData() {
+                    localStorage.setItem('cb_accounts', JSON.stringify(this.accounts));
+                    localStorage.setItem('cb_entries', JSON.stringify(this.entries));
+                    if (this.activeAccountId) {
+                        localStorage.setItem('cb_active_account_id', this.activeAccountId);
+                    }
+                    await idbHelper.saveAll('accounts', this.accounts);
+                    await idbHelper.saveAll('entries', this.entries);
+                },
+
+                get activeAccount() {
+                    return this.accounts.find(a => a.id === this.activeAccountId) || this.accounts[0];
+                },
+
+                switchAccount(id) {
+                    this.activeAccountId = id;
+                    localStorage.setItem('cb_active_account_id', id);
+                },
+
+                get activeEntries() {
+                    return this.entries.filter(e => e.accountId === this.activeAccountId && !e.deleted);
+                },
+
+                get deletedEntries() {
+                    return this.entries.filter(e => e.deleted);
+                },
+
+                get deletedEntriesCount() {
+                    return this.deletedEntries.length;
+                },
+
+                get remarkSuggestions() {
+                    if (!this.entryForm.remark || this.entryForm.remark.trim().length < 2) return [];
+                    const q = this.entryForm.remark.trim().toLowerCase();
+                    const uniqueRemarks = Array.from(new Set(
+                        this.entries
+                            .map(e => (e.remark || '').trim())
+                            .filter(r => r.length > 0)
+                    ));
+                    return uniqueRemarks.filter(r => r.toLowerCase().includes(q));
+                },
+
+                selectRemarkSuggestion(name) {
+                    this.entryForm.remark = name;
+                    this.showRemarkSuggestions = false;
+                },
+
+                clearAllFilters() {
+                    this.searchQuery = '';
+                    this.filterDate = '';
+                    this.filterType = 'ALL';
+                    this.searchAccountScope = 'CURRENT';
+                },
+
+                get filteredEntries() {
+                    return this.entries.filter(entry => {
+                        if (entry.deleted) return false;
+
+                        if (this.searchAccountScope === 'CURRENT' && entry.accountId !== this.activeAccountId) {
+                            return false;
+                        }
+
+                        if (this.filterType !== 'ALL' && entry.type !== this.filterType) return false;
+
+                        if (this.filterDate) {
+                            const entryDateStr = new Date(entry.date).toISOString().slice(0, 10);
+                            if (entryDateStr !== this.filterDate) return false;
+                        }
+
+                        if (this.searchQuery.trim() !== '') {
+                            const q = this.searchQuery.toLowerCase();
+                            const remarkMatch = (entry.remark || '').toLowerCase().includes(q);
+                            const amountMatch = entry.amount.toString().includes(q);
+                            const accountNameMatch = this.getAccountName(entry.accountId).toLowerCase().includes(q);
+                            if (!remarkMatch && !amountMatch && !accountNameMatch) return false;
+                        }
+
+                        return true;
+                    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+                },
+
+                get totalCashIn() {
+                    return this.filteredEntries
+                        .filter(e => e.type === 'IN')
+                        .reduce((sum, e) => sum + Number(e.amount), 0);
+                },
+
+                get totalCashOut() {
+                    return this.filteredEntries
+                        .filter(e => e.type === 'OUT')
+                        .reduce((sum, e) => sum + Number(e.amount), 0);
+                },
+
+                get netBalance() {
+                    return this.totalCashIn - this.totalCashOut;
+                },
+
+                getAccountName(accId) {
+                    const acc = this.accounts.find(a => a.id === accId);
+                    return acc ? acc.name : 'Unknown Account';
+                },
+
+                getAccountIcon(accId) {
+                    const acc = this.accounts.find(a => a.id === accId);
+                    return acc ? (acc.icon || '👤') : '👤';
+                },
+
+                openEntryModal(type = 'IN') {
+                    this.entryForm = { id: null, isEdit: false, type: type, amount: '', remark: '' };
+                    this.showRemarkSuggestions = true;
+                    this.showEntryModal = true;
+                    this.$nextTick(() => {
+                        if (this.$refs.amountInput) this.$refs.amountInput.focus();
+                    });
+                },
+
+                editEntry(entry) {
+                    this.entryForm = {
+                        id: entry.id,
+                        isEdit: true,
+                        type: entry.type,
+                        amount: entry.amount,
+                        remark: entry.remark || ''
+                    };
+                    this.showRemarkSuggestions = true;
+                    this.showEntryModal = true;
+                    this.$nextTick(() => {
+                        if (this.$refs.amountInput) this.$refs.amountInput.focus();
+                    });
+                },
+
+                saveEntry() {
+                    if (!this.entryForm.amount || this.entryForm.amount <= 0) return;
+
+                    const nowISO = new Date().toISOString();
+
+                    if (this.entryForm.isEdit) {
+                        const index = this.entries.findIndex(e => e.id === this.entryForm.id);
+                        if (index !== -1) {
+                            this.entries[index] = {
+                                ...this.entries[index],
+                                type: this.entryForm.type,
+                                amount: Number(this.entryForm.amount),
+                                remark: this.entryForm.remark
+                            };
+                        }
+                    } else {
+                        const newEntry = {
+                            id: 'ent_' + Date.now(),
+                            accountId: this.activeAccountId,
+                            type: this.entryForm.type,
+                            amount: Number(this.entryForm.amount),
+                            date: nowISO,
+                            remark: this.entryForm.remark,
+                            deleted: false
+                        };
+                        this.entries.push(newEntry);
+                    }
+
+                    this.saveData();
+                    this.showEntryModal = false;
+                },
+
+                confirmDeleteEntry(entry) {
+                    this.targetEntryToDelete = entry;
+                    this.showDeleteConfirmModal = true;
+                },
+
+                executeSoftDelete() {
+                    if (this.targetEntryToDelete) {
+                        const entry = this.entries.find(e => e.id === this.targetEntryToDelete.id);
+                        if (entry) {
+                            entry.deleted = true;
+                            entry.deletedAt = new Date().toISOString();
+                            this.saveData();
+                        }
+                    }
+                    this.targetEntryToDelete = null;
+                    this.showDeleteConfirmModal = false;
+                },
+
+                restoreEntry(id) {
+                    const entry = this.entries.find(e => e.id === id);
+                    if (entry) {
+                        entry.deleted = false;
+                        delete entry.deletedAt;
+                        this.saveData();
+                    }
+                },
+
+                permanentlyDeleteEntry(id) {
+                    this.entries = this.entries.filter(e => e.id !== id);
+                    this.saveData();
+                },
+
+                emptyTrash() {
+                    this.entries = this.entries.filter(e => !e.deleted);
+                    this.saveData();
+                },
+
+                openAccountModal() {
+                    this.accountForm = { id: null, isEdit: false, name: '', icon: '💵' };
+                    this.showAccountModal = true;
+                },
+
+                openEditAccountModal(acc) {
+                    this.accountForm = { id: acc.id, isEdit: true, name: acc.name, icon: acc.icon || '💵' };
+                    this.showAccountModal = true;
+                },
+
+                saveAccount() {
+                    if (!this.accountForm.name.trim()) return;
+
+                    if (this.accountForm.isEdit) {
+                        const index = this.accounts.findIndex(a => a.id === this.accountForm.id);
+                        if (index !== -1) {
+                            this.accounts[index].name = this.accountForm.name.trim();
+                            this.accounts[index].icon = this.accountForm.icon;
+                        }
+                    } else {
+                        const newAccount = {
+                            id: 'acc_' + Date.now(),
+                            name: this.accountForm.name.trim(),
+                            icon: this.accountForm.icon
+                        };
+                        this.accounts.push(newAccount);
+                        this.switchAccount(newAccount.id);
+                    }
+
+                    this.saveData();
+                    this.showAccountModal = false;
+                },
+
+                promptDeleteAccount(acc) {
+                    if (this.accounts.length <= 1) return;
+                    this.accountToDelete = acc;
+                    this.deleteAccountConfirmName = '';
+                    this.showDeleteAccountModal = true;
+                },
+
+                get canConfirmAccountDelete() {
+                    if (!this.accountToDelete) return false;
+                    return this.deleteAccountConfirmName.trim().toLowerCase() === this.accountToDelete.name.trim().toLowerCase();
+                },
+
+                executeDeleteAccount() {
+                    if (!this.canConfirmAccountDelete || !this.accountToDelete) return;
+
+                    const id = this.accountToDelete.id;
+                    this.accounts = this.accounts.filter(a => a.id !== id);
+                    this.entries.forEach(e => {
+                        if (e.accountId === id) e.deleted = true;
+                    });
+
+                    if (this.activeAccountId === id) {
+                        const nextId = this.accounts.length > 0 ? this.accounts[0].id : null;
+                        this.switchAccount(nextId);
+                    }
+
+                    this.saveData();
+                    this.showDeleteAccountModal = false;
+                    this.accountToDelete = null;
+                    this.deleteAccountConfirmName = '';
+                },
+
+                formatCurrency(amount) {
+                    const num = Number(amount || 0);
+                    return `Rs ${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                },
+
+                formatDateTime(dateStr) {
+                    if (!dateStr) return '-';
+                    const d = new Date(dateStr);
+                    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ', ' + 
+                           d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                },
+
+                exportJSON() {
+                    const dataObj = {
+                        accounts: this.accounts,
+                        entries: this.entries,
+                        selectedTheme: this.selectedTheme,
+                        activeAccountId: this.activeAccountId,
+                        creator: "App Creator Junaid Gillani Phone 03176407994",
+                        exportDate: new Date().toISOString()
+                    };
+                    const jsonStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataObj, null, 2));
+                    const dlAnchorElem = document.createElement('a');
+                    dlAnchorElem.setAttribute("href", jsonStr);
+                    dlAnchorElem.setAttribute("download", `CashBook_Backup_${new Date().toISOString().slice(0,10)}.json`);
+                    document.body.appendChild(dlAnchorElem);
+                    dlAnchorElem.click();
+                    dlAnchorElem.remove();
+                },
+
+                importJSON(event) {
+                    const file = event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const parsed = JSON.parse(e.target.result);
+                            if (parsed.accounts && Array.isArray(parsed.accounts)) this.accounts = parsed.accounts;
+                            if (parsed.entries && Array.isArray(parsed.entries)) this.entries = parsed.entries;
+                            if (parsed.selectedTheme) this.setTheme(parsed.selectedTheme);
+                            if (parsed.activeAccountId && this.accounts.some(a => a.id === parsed.activeAccountId)) {
+                                this.switchAccount(parsed.activeAccountId);
+                            } else if (this.accounts.length > 0) {
+                                this.switchAccount(this.accounts[0].id);
+                            }
+                            this.saveData();
+                        } catch (err) {}
+                    };
+                    reader.readAsText(file);
+                },
+
+                openStatementModal() {
+                    this.showStatementModal = true;
+                },
+
+                shareStatementWhatsApp() {
+                    const accName = this.activeAccount ? this.activeAccount.name : 'Ledger';
+                    let text = `📜 *ACCOUNT STATEMENT: ${accName}*\n`;
+                    text += `📅 Date: ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}\n\n`;
+                    text += `💵 *Total Cash IN:* ${this.formatCurrency(this.totalCashIn)}\n`;
+                    text += `💸 *Total Cash OUT:* ${this.formatCurrency(this.totalCashOut)}\n`;
+                    text += `⚖️ *Net Balance:* ${this.formatCurrency(this.netBalance)}\n\n`;
+                    text += `----------------------------------------\n`;
+                    text += `📋 *Recent Transactions:*\n`;
+
+                    if (this.activeEntries.length === 0) {
+                        text += `No transactions recorded.\n`;
+                    } else {
+                        const items = this.activeEntries.slice(0, 15);
+                        items.forEach((item, index) => {
+                            const symbol = item.type === 'IN' ? '🟢 +' : '🔴 -';
+                            const remark = item.remark ? item.remark : 'General Entry';
+                            const dateStr = this.formatDateTime(item.date);
+                            text += `${index + 1}. ${symbol}${this.formatCurrency(item.amount)} | ${remark} (${dateStr})\n`;
+                        });
+                        if (this.activeEntries.length > 15) {
+                            text += `... and ${this.activeEntries.length - 15} more entries.\n`;
+                        }
+                    }
+
+                    text += `\nApp Creator Junaid Gillani Phone 03176407994`;
+                    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+                    window.open(whatsappUrl, '_blank');
+                },
+
+                async downloadStatementImage() {
+                    const elem = document.getElementById('statementPrintArea');
+                    if (!elem) return;
+                    const canvas = await html2canvas(elem, { scale: 2 });
+                    const link = document.createElement('a');
+                    link.download = `Statement_${this.activeAccount ? this.activeAccount.name : 'Ledger'}_${new Date().toISOString().slice(0,10)}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                },
+
+                async downloadStatementPDF() {
+                    const elem = document.getElementById('statementPrintArea');
+                    if (!elem) return;
+                    const canvas = await html2canvas(elem, { scale: 2 });
+                    const imgData = canvas.toDataURL('image/png');
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 210;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                    pdf.save(`Statement_${this.activeAccount ? this.activeAccount.name : 'Ledger'}_${new Date().toISOString().slice(0,10)}.pdf`);
+                },
+
+                renderCharts() {
+                    const flowCtx = document.getElementById('cashflowChart');
+                    if (flowCtx) {
+                        if (this.cashflowChartInstance) this.cashflowChartInstance.destroy();
+                        const currentThemeObj = this.availableThemes.find(t => t.id === this.selectedTheme);
+                        const themeColor = currentThemeObj ? currentThemeObj.primaryHex : '#10b981';
+
+                        this.cashflowChartInstance = new Chart(flowCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: ['Cash IN (+)', 'Cash OUT (-)'],
+                                datasets: [{
+                                    label: 'Amount (Rs)',
+                                    data: [this.totalCashIn, this.totalCashOut],
+                                    backgroundColor: [themeColor, '#f43f5e'],
+                                    borderRadius: 12
+                                }]
+                            },
+                            options: { responsive: true, maintainAspectRatio: false }
+                        });
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
